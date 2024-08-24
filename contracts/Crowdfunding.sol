@@ -18,8 +18,8 @@ contract Crowdfunding {
         bool ended; // campaign active/inactive boolean checker
     }
 
-    Campaign[] campaigns;
-    address owner;
+    Campaign[] public campaigns;
+    address public owner;
 
     mapping(address => uint) balances;
 
