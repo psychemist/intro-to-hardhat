@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 contract Crowdfunding {
 
-    event CampaignCreated(address indexed creator, uint campaingId);
+    event CampaignCreated(address indexed creator, uint campaignId);
     event DonationReceived(uint campaignId, address indexed donor, uint amount);
     event CampaignEnded(uint campaignId, address beneficiary, bool goalMet);
 
@@ -22,9 +22,8 @@ contract Crowdfunding {
     address owner;
 
     mapping(address => uint) balances;
-    mapping(uint => Campaign) public funds;
 
-    constructor {
+    constructor() {
         owner = msg.sender;
     }
 
@@ -34,24 +33,28 @@ contract Crowdfunding {
         _;
     }
 
+    // Create crowdfunding campaign
     function createCampaign(string memory _title, string memory _description, 
                             address _beneficiary, uint _goal, uint _duration) public {
-        uint _deadline = block.timestamp + _duration;
+        // Verify that campaign goal and duration are greater than zero
         require(_goal > 0);
         require(_duration > 0);
 
-        // Create campaign
-        campaigns.push(Campaign(_title, _description, msg.sender, _beneficiary, _goal, _deadline, 0, false));
-        // campaigns 
+        // Calculate deadline from _duration parameter
+        uint deadline = block.timestamp + _duration;
+
+        // Create new campaign struct and aadd to campaigns array
+        campaigns.push(Campaign(_title, _description, msg.sender, _beneficiary, _goal, deadline, 0, false));
 
         // Trigger campaign creation event
         emit CampaignCreated(msg.sender, campaigns.length - 1);
     }
 
+    // Donate to crowdfunding campaign
     function donateToCampaign(uint _campaignId, uint _amount) public payable {
         Campaign storage campaign = campaigns[_campaignId];
 
-        // Ensure
+        // Ensure that campaign is still open to donations
         require(campaign.deadline >= block.timestamp, "Crowdfunding deadline has passed!");
 
         // Update campaign balance
@@ -62,16 +65,16 @@ contract Crowdfunding {
         emit DonationReceived(_campaignId, msg.sender, _amount);
     }
 
-    function _endCampaign(uint _campaignId) internal{
+    // Called internally to end campaign
+    function _endCampaign(uint _campaignId) internal {
         Campaign storage campaign = campaigns[_campaignId];
 
-        require(msg.sender = camaign.benefactor);
         // Verify crowdfunding campaign is not ended
         require(!campaign.ended);
 
         // Transfer funds to beneficiary
         if (campaign.amountRaised > 0) {
-            campaign.beneficiary.transfer(campaign.amountRaised);
+            payable(campaign.beneficiary).transfer(campaign.amountRaised);
         }
 
         // End campaign
@@ -81,7 +84,12 @@ contract Crowdfunding {
 
     function endCampaign(uint _campaignId) public {
         Campaign storage campaign = campaigns[_campaignId];
-        require(block.timestamp >= campaign.deadline "Crowdfunding is still active!");
+
+        // Verify only campaign creator can end the crowdfund
+        require(msg.sender == campaign.benefactor);
+
+        // Ensure campaign deadline has passed
+        require(block.timestamp >= campaign.deadline, "Crowdfunding is still active!");
 
         // End campaign
         _endCampaign(_campaignId);
