@@ -36,16 +36,16 @@ contract Crowdfunding {
 
     // Create crowdfunding campaign
     function createCampaign(string memory _title, string memory _description, 
-                            address payable _beneficiary, uint _goal, uint _duration) public {
+                            address payable _beneficiary, uint _goal, uint32 _duration) public {
         // Verify that campaign goal and duration are greater than zero
         require(_goal > 0);
         require(_duration > 0);
 
         // Calculate deadline from _duration parameter
-        uint deadline = block.timestamp + _duration;
+        uint32 deadline = uint32(block.timestamp + _duration);
 
         // Create new campaign struct and aadd to campaigns array
-        campaigns.push(Campaign(_title, _description, msg.sender, _beneficiary, _goal, deadline, 0, false));
+        campaigns.push(Campaign(_title, _description, msg.sender, _beneficiary, _goal, 0, deadline, false));
 
         // Trigger campaign creation event
         emit CampaignCreated(msg.sender, campaigns.length - 1);
