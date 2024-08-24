@@ -7,14 +7,15 @@ contract Crowdfunding {
     event DonationReceived(uint campaignId, address indexed donor, uint amount);
     event CampaignEnded(uint campaignId, address beneficiary, bool goalMet);
 
+    // Packed struct for storing crowdfunding campaigns
     struct Campaign {
         string title; //name of campaign
         string description; // brief description of campaign
         address benefactor; // address of person or organization that created campaign
-        address beneficiary; // address of person or organization to receive funds
+        address payable beneficiary; // address of person or organization to receive funds
         uint goal; // fundraising goal (in wei)
-        uint deadline; // Unix timestamp when campaign ends (in seconds)
         uint amountRaised; // total amount of funds raised so far (in wei)
+        uint32 deadline; // Unix timestamp when campaign ends (in seconds)
         bool ended; // campaign active/inactive boolean checker
     }
 
@@ -35,7 +36,7 @@ contract Crowdfunding {
 
     // Create crowdfunding campaign
     function createCampaign(string memory _title, string memory _description, 
-                            address _beneficiary, uint _goal, uint _duration) public {
+                            address payable _beneficiary, uint _goal, uint _duration) public {
         // Verify that campaign goal and duration are greater than zero
         require(_goal > 0);
         require(_duration > 0);
@@ -74,19 +75,19 @@ contract Crowdfunding {
 
         // Transfer funds to beneficiary
         if (campaign.amountRaised > 0) {
-            payable(campaign.beneficiary).transfer(campaign.amountRaised);
+            campaign.beneficiary.transfer(campaign.amountRaised);
         }
 
         // End campaign
         campaign.ended = true;
     }
 
-
+    // End crowdfunding cmpaign
     function endCampaign(uint _campaignId) public {
         Campaign storage campaign = campaigns[_campaignId];
 
-        // Verify only campaign creator can end the crowdfund
-        require(msg.sender == campaign.benefactor);
+        // Verify only campaign creator or contract owner can end the crowdfund
+        require(msg.sender == campaign.benefactor || msg.sender == owner);
 
         // Ensure campaign deadline has passed
         require(block.timestamp >= campaign.deadline, "Crowdfunding is still active!");
@@ -100,8 +101,11 @@ contract Crowdfunding {
 
     // Withdraw leftover funds (only owner)
     function withdrawLeftoverFunds() public onlyOwner {
+        // Store valid contract balance in storage variable
         uint256 balance = address(this).balance;
         require(balance > 0, "No funds to withdraw.");
+
+        // Transfer left over funds to owner
         payable(owner).transfer(balance);
     }
 
